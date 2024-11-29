@@ -35,4 +35,4 @@ jobs:
             echo "Conectando no EC2"
             echo "${{secrets.KEY}}" > private_key && chmod 600 private_key
             ssh -o StrictHostKeyChecking=no -i private_key ubuntu@ec2-3-232-6-173.compute-1.amazonaws.com "
-                  cd testeDevOps/;git pull;./iniciarApp.sh"
+                  cd treinoDevOps/;git pull;./iniciarApp.sh"
