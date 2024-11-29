@@ -1,71 +1,33 @@
-name: CI/CD Pipeline
- 
-on:
-  push:
-    branches:
-      - dev
-      - main
- 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          npm install
-          npm run build
- 
-  deploy-render:
-    if: github.ref == 'refs/heads/DEV'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Render
-        run: |
-          echo "Deploying to Render"
- 
-  deploy-aws:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to AWS
-        run: |
-          echo "Deploying to AWS"
- 
- 
- 
- 
-name: Deploy static site to Render and AWS EC2
- 
+name: Deploy web service to Render and AWS EC2
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
- 
+
 permissions:
   contents: read
   id-token: write
- 
+
 concurrency:
   group: "render-aws-deploy"
   cancel-in-progress: false
- 
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
- 
+
       - name: Deploy to Render
         uses: johnbeynon/render-deploy-action@v0.0.8
         with:
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
           api-key: ${{ secrets.RENDER_API_KEY }}
- 
+
       - name: Deploy to AWS EC2
         run: |
           echo "Conectando no EC2"
