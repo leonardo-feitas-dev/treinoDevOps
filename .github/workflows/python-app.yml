@@ -1,41 +1,78 @@
-name: PipelineFlask
-
+name: CI/CD Pipeline
+ 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+    branches:
+      - dev
+      - main
+ 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-    - name: Render Deploy Action
-      uses: johnbeynon/render-deploy-action@v0.0.8
-      with:
-        service-id: srv-ct4quad6l47c73fap9hg
-        api-key: rnd_CwlMDRDk1pUyIPlmh7aj9XrLwMuY 
-
-    - name: Deploy to EC2 - AWS
-      env:
-        SSH_PRIVATE_KEY: ${{ SSH_PRIVATE_KEY }}
-      run: |
-        echo "Connecting to EC2..."
-        echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
-        ssh -o StrictHostKeyChecking=no -i private_key ubuntu@ec2-3-232-6-173.compute-1.amazonaws.com "
-          cd treinoDevOps/; git pull; ./executar.sh"
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          npm install
+          npm run build
+ 
+  deploy-render:
+    if: github.ref == 'refs/heads/DEV'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Render
+        run: |
+          echo "Deploying to Render"
+ 
+  deploy-aws:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to AWS
+        run: |
+          echo "Deploying to AWS"
+ 
+ 
+ 
+ 
+name: Deploy static site to Render and AWS EC2
+ 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+ 
+permissions:
+  contents: read
+  id-token: write
+ 
+concurrency:
+  group: "render-aws-deploy"
+  cancel-in-progress: false
+ 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+ 
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+ 
+      - name: Deploy to AWS EC2
+        run: |
+          echo "Conectando no EC2"
+          echo "${{ secrets.AWS_KEY }}" > private_key
+          chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ubuntu@ec2-3-232-6-173.compute-1.amazonaws.com "
+            cd treinoDevOps/ && git pull
+          "
+        env:
+          AWS_KEY: ${{ secrets.AWS_KEY }}
